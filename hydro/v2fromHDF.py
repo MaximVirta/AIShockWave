@@ -1,10 +1,11 @@
 # author: pyjorunk
-# This script calculates v2 from hdf files using 2-particle correlations from Q vectors
+# This script creates particle images and calculates v2 from hdf files using 2-particle correlations from Q vectors
 # Calculating with Q-vectors avoids having to consider each particle pair 
 # This technique is insensitive to non-flow effects and interference between different harmonics
 # Based on https://arxiv.org/pdf/1010.0233.pdf
 
-# This calculates flow coefficients for events using all particle samples taken from one hydro simulation
+# Images are created for each sample
+# Flow coefficients for each event are calculated using all samples
 # For simplicity assume there is uniform acceptance in the detector
 
 
