@@ -35,7 +35,7 @@ def SingleEvtAvgTwoParticleCorr(Qns, Ms):
 
 # TODO edit this to make images we want
 def make_image_sample(sample): #tree = uproot3.open(fn)['vTree'] #df = tree.pandas.df();
-    histo, xedges, yedges = np.histogram2d(sample['eta'], sample['phi'], bins=(32,32))#,weights=myevent['pt'])
+    histo, xedges, yedges = np.histogram2d(sample['eta'], sample['phi'], bins=(32,32), range=[[-0.8,0.8],[-np.pi,np.pi]])#,weights=myevent['pt'])
     return np.array([histo])#,np.array(flowprop)
 
 v2s = np.array([])
