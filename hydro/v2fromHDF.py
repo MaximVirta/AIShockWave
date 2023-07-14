@@ -1,4 +1,5 @@
 # author: pyjorunk
+# Arguments: CM energy, 
 # This script creates particle images and calculates v2 from hdf files using 2-particle correlations from Q vectors
 # Calculating with Q-vectors avoids having to consider each particle pair 
 # This technique is insensitive to non-flow effects and interference between different harmonics
@@ -33,82 +34,127 @@ def QVector(phis, n):
 def SingleEvtAvgTwoParticleCorr(Qns, Ms):
     return (np.abs(Qns)*np.abs(Qns) - Ms)#/(Ms*Ms-Ms)
 
-# TODO edit this to make images we want
-def make_image_sample(sample): #tree = uproot3.open(fn)['vTree'] #df = tree.pandas.df();
-    histo, xedges, yedges = np.histogram2d(sample['eta'], sample['phi'], bins=(32,32), range=[[-0.8,0.8],[-np.pi,np.pi]])#,weights=myevent['pt'])
-    return np.array([histo])#,np.array(flowprop)
+# TODO edit this to make the two other layers
+def make_image_sample(sample):
+    histoE, xedgesE, yedgesE = np.histogram2d(sample['eta'], sample['phi'], weights=np.log(energy)*np.ones(len(sample)), bins=(32,32), 
+                                           range=[[-0.8,0.8],[-np.pi,np.pi]])
+    histomT, xedgesmT, yedgesmT = np.histogram2d(sample['eta'], sample['phi'], weights=sample['mT'], bins=(32,32), 
+                                           range=[[-0.8,0.8],[-np.pi,np.pi]])
+    histopT, xedgespT, yedgespT = np.histogram2d(sample['eta'], sample['phi'], weights=sample['pT'], bins=(32,32), 
+                                           range=[[-0.8,0.8],[-np.pi,np.pi]])
+    return np.array([np.array([histoE, histomT, histopT])])
 
+energy = 5 #sys.argv[1]
 v2s = np.array([])
 v3s = np.array([])
+Ms_event = np.array([])
+images = np.empty(shape=(1,3,32,32))
+
+# for statistics
 skipped_v2s = np.array([])
-skipped = 0
+skipped_Ms = np.array([])
+skipped_images = np.array([])
+sample_diffs = np.array([])
+image_diffs = np.array([])
+sample_sizes = np.array([])
+nch_inimage_check = 0
+total_samples = 0
+total_particles = 0
 
-images = []
 
-
-print(sys.argv[2:]) # when running, give as arguments the files with data
+#print(sys.argv[2:]) # when running, give as arguments the files with data
+#TODO: give as first arg the beam energy, second arg bool of hdf or MC
 #for fn in sys.argv[1:]:
 fn = "particles_PbPb_50evt.hdf" # for testing just use this one file
 for x in [1]:
     with h5py.File(fn,"r") as f:
         event_n = 1
-        for evt in f.values():
-            Ms = np.array([])
-            Q2s = np.array([])
+        for evt in f.values(): # loop over events in file
+            Ms = np.array([]) # mulitplicities per event
+            Q2s = np.array([]) # Q-vectors per event
             Q3s = np.array([])
-            # make list of particles in event
-            particles = np.sort(np.array(evt[:], dtype=parts_dtype), order='sample')
-            # loop over samples in each event
+            particles = np.sort(np.array(evt[:], dtype=parts_dtype), order=['sample','charge']) # list of particles in event
+
             sample_start = 0
             sample_n = particles[0]['sample']
             current_particle = 0
-            particle_n = 0
-            # count particles in current sample
-            for particle in particles:
-                if particles[current_particle]['sample'] == sample_n:
-                    current_particle += 1
-                # compute sample weights and Q-vectors
+            n_particles = 0
+            ch_indices = np.array([])
+
+            for particle in particles: # loop over samples
+                if particles[current_particle]['sample'] == sample_n and not(current_particle == len(particles)-1):
+                    current_particle += 1 # running index
+                    if particles[current_particle]['charge'] != 0:
+                        if np.abs(particles[current_particle]['eta']) <= 0.8: # choose only particles in mid-rapidity
+                            ch_indices = np.append(ch_indices, current_particle) # save indices of charged particles in current sample
+                # compute sample Q-vectors
                 else:
-                    particle_n = current_particle-sample_start
-                    sample = particles[sample_start:current_particle]
-                    Ms = np.append(Ms, particle_n)
+                    if current_particle == len(particles)-1:
+                        current_particle += 1 # running index
+                        if particles[current_particle]['charge'] != 0:
+                            if np.abs(particles[current_particle]['eta']) <= 0.8:
+                                ch_indices = np.append(ch_indices, current_particle)
+
+                    Ms = np.append(Ms, len(ch_indices)) # charged multiplicity of sample
+                    sample = particles[ch_indices.astype(int)]
+
                     Q2s = np.append(Q2s, QVector(sample['phi'], 2))
                     Q3s = np.append(Q3s, QVector(sample['phi'], 3))
 
-                    images.append(make_image_sample(sample))
+                    sample_images = make_image_sample(sample)
+                    images = np.append(images, sample_images, axis=0)
+                    image_diffs = np.append(image_diffs, len(sample)-np.sum(images[-1, 0], axis=(0,1)))
+
                     #print('finished sample {} of event {}'.format(sample_n, event_n))
                     sample_n += 1
-                    # move to the start of next sample
-                    sample_start += particle_n
-                    particle_n = 0
+                    sample_start += n_particles # move to the start of next sample
+                    n_particles = 0
 
-            # calculate v2 v3 per event using all of its samples
-            # weights from eq (9) of source paper
+            # calculate vn per event using all samples, weights from eq (9) of source paper
             weights = Ms*Ms-Ms
             sum_of_weights = sum(weights)
             single_event_avgs_2 = SingleEvtAvgTwoParticleCorr(Q2s, Ms)
             single_event_avgs_3 = SingleEvtAvgTwoParticleCorr(Q3s, Ms)
-            # weighting not needed with skipping the division by Ms*Ms-Ms in the function above
+            # weighting already done with skipping the division by Ms*Ms-Ms in the function above
             #weighted_sum_2 = np.dot(weights, single_event_avgs_2)
             #weighted_sum_3 = np.dot(weights, single_event_avgs_3)
-            #v2s = np.append(v2s, np.sqrt(weighted_sum_2/sum_of_weights))
-            #v3s = np.append(v3s, np.sqrt(weighted_sum_3/sum_of_weights)) # for some events this is sqrt of a negative number
 
-            # only positive flow coefficients usable
-            if sum(single_event_avgs_3) > 0:
-                v2s = np.append(v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights))
-                v3s = np.append(v3s, np.sqrt(sum(single_event_avgs_3)/sum_of_weights))
+            if sum(single_event_avgs_3) > 0: # only positive flow coefficients usable
+                v2s = np.append(v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights)*np.ones(sample_n)) # sample_n images per event
+                v3s = np.append(v3s, np.sqrt(sum(single_event_avgs_3)/sum_of_weights)*np.ones(sample_n))
+                Ms_event = np.append(Ms_event, np.sum(Ms)*np.ones(sample_n)) # charged particle multiplicity per event
             else:
+                skipped_images = np.append(skipped_images, images[-sample_n:])
+                images = images[:-sample_n] # throw away images of last event
                 skipped_v2s = np.append(skipped_v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights))
-                skipped += 1
+                skipped_Ms = np.append(skipped_Ms, np.sum(Ms))
 
-            print("finished event {}".format(event_n))
+            #print("finished event {}".format(event_n))
+            total_samples += sample_n
+            total_particles += current_particle
             event_n += 1
 
-# TODO test with toymcflow particles to see if it gives accurate v2 v3
-print('skipped {} events with v2s = '.format(skipped), np.round(skipped_v2s,4))
-print('v2s =', np.round(v2s, 4))
-print('v3s = ', np.round(v3s, 4))
+# print to check things
+# should be 937 252 particles
+print('events', event_n-1)
+print('samples', total_samples)
+print('particles', total_particles)
 
-vns = np.stack((v2s, v3s), axis=-1)
-np.savez_compressed('images_{}.npz'.format(fn),images=images,flow_coefs = vns)
+print('total nch in images {nch} and skipped {skipped}'.format(nch = np.sum(Ms_event), skipped = np.sum(skipped_Ms)))
+print('skipped {n} events with nch avg {avg}, v2s {v2s}'.format(n = len(skipped_v2s), avg = np.average(skipped_Ms), v2s = skipped_v2s))
+
+#print('v2s =', np.round(v2s, 4))
+#print('v3s = ', np.round(v3s, 4))
+
+print('image check = {}'.format(np.sum(np.abs(image_diffs))))
+print('charged particles in image')
+# TODO get the correct values for avg min max
+print(images.shape)
+Ms_image = np.sum(images, axis=(1,2,3))  # array of multiplicities of each energy layer: images = [[histoE1, histomT1, histopT1], [histoE2, histomT2, histopT2], ...]
+print('avg {avg} min {min} max {max}'.format(avg=np.average(Ms_image),min=np.min(Ms_image), max=np.max(Ms_image)))
+
+print(v2s.shape, v3s.shape, Ms_image.shape)
+# TODO: group image with corresponding vn and multiplicity
+flowdata = np.stack((v2s, v3s, Ms_image), axis=-1)
+np.savez_compressed('new-images_{}.npz'.format(fn),images=images,flow_data = flowdata)
+ 
