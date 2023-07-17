@@ -48,7 +48,7 @@ energy = 5 #sys.argv[1]
 v2s = np.array([])
 v3s = np.array([])
 Ms_event = np.array([])
-images = np.empty(shape=(1,3,32,32))
+# images = np.empty(shape=(0,3,32,32))
 
 # for statistics
 skipped_v2s = np.array([])
@@ -61,6 +61,7 @@ nch_inimage_check = 0
 total_samples = 0
 total_particles = 0
 
+images = np.empty((0,3,32,32))
 
 #print(sys.argv[2:]) # when running, give as arguments the files with data
 #TODO: give as first arg the beam energy, second arg bool of hdf or MC
@@ -69,47 +70,38 @@ fn = "particles_PbPb_50evt.hdf" # for testing just use this one file
 for x in [1]:
     with h5py.File(fn,"r") as f:
         event_n = 1
+
+        ievt = 0
         for evt in f.values(): # loop over events in file
             Ms = np.array([]) # mulitplicities per event
             Q2s = np.array([]) # Q-vectors per event
             Q3s = np.array([])
             particles = np.sort(np.array(evt[:], dtype=parts_dtype), order=['sample','charge']) # list of particles in event
-
             sample_start = 0
             sample_n = particles[0]['sample']
             current_particle = 0
             n_particles = 0
             ch_indices = np.array([])
+            N_samples = 10 #particles.max(axis=1);
+            for s in range(N_samples):
+                ind = ievt*N_samples+s;
+                sample = []
+                for particle in particles:
+                    if particle['sample']!=s+1 or particle['charge']==0 or np.abs(particle['eta']) >= 0.8: continue; 
+                    sample.append(particle);
 
-            for particle in particles: # loop over samples
-                if particles[current_particle]['sample'] == sample_n and not(current_particle == len(particles)-1):
-                    current_particle += 1 # running index
-                    if particles[current_particle]['charge'] != 0:
-                        if np.abs(particles[current_particle]['eta']) <= 0.8: # choose only particles in mid-rapidity
-                            ch_indices = np.append(ch_indices, current_particle) # save indices of charged particles in current sample
-                # compute sample Q-vectors
-                else:
-                    if current_particle == len(particles)-1:
-                        current_particle += 1 # running index
-                        if particles[current_particle]['charge'] != 0:
-                            if np.abs(particles[current_particle]['eta']) <= 0.8:
-                                ch_indices = np.append(ch_indices, current_particle)
+                sample = np.array(sample)
+                Ms = np.append(Ms, len(sample)) # charged multiplicity of sample
+                Q2s = np.append(Q2s, QVector(sample[:]['phi'], 2))
+                Q3s = np.append(Q3s, QVector(sample[:]['phi'], 3))
+                sample_images = make_image_sample(sample)
+                images = np.append(images, sample_images, axis=0)
+                image_diffs = np.append(image_diffs, len(sample)-np.sum(images[-1, 0], axis=(0,1)))
+                #print(s, images.shape, sample.size)
 
-                    Ms = np.append(Ms, len(ch_indices)) # charged multiplicity of sample
-                    sample = particles[ch_indices.astype(int)]
+            ievt=ievt+1;
 
-                    Q2s = np.append(Q2s, QVector(sample['phi'], 2))
-                    Q3s = np.append(Q3s, QVector(sample['phi'], 3))
-
-                    sample_images = make_image_sample(sample)
-                    images = np.append(images, sample_images, axis=0)
-                    image_diffs = np.append(image_diffs, len(sample)-np.sum(images[-1, 0], axis=(0,1)))
-
-                    #print('finished sample {} of event {}'.format(sample_n, event_n))
-                    sample_n += 1
-                    sample_start += n_particles # move to the start of next sample
-                    n_particles = 0
-
+            print("After loop",images.shape)
             # calculate vn per event using all samples, weights from eq (9) of source paper
             weights = Ms*Ms-Ms
             sum_of_weights = sum(weights)
@@ -120,19 +112,22 @@ for x in [1]:
             #weighted_sum_3 = np.dot(weights, single_event_avgs_3)
 
             if sum(single_event_avgs_3) > 0: # only positive flow coefficients usable
-                v2s = np.append(v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights)*np.ones(sample_n)) # sample_n images per event
-                v3s = np.append(v3s, np.sqrt(sum(single_event_avgs_3)/sum_of_weights)*np.ones(sample_n))
+                v2s = np.append(v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights)*np.ones(N_samples)) # sample_n images per event
+                v3s = np.append(v3s, np.sqrt(sum(single_event_avgs_3)/sum_of_weights)*np.ones(N_samples))
                 Ms_event = np.append(Ms_event, np.sum(Ms)*np.ones(sample_n)) # charged particle multiplicity per event
             else:
+                print(ievt)
                 skipped_images = np.append(skipped_images, images[-sample_n:])
-                images = images[:-sample_n] # throw away images of last event
+                images = images[:-N_samples] # throw away images of last event
                 skipped_v2s = np.append(skipped_v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights))
                 skipped_Ms = np.append(skipped_Ms, np.sum(Ms))
 
-            #print("finished event {}".format(event_n))
+            # print("finished event {}".format(event_n))
             total_samples += sample_n
             total_particles += current_particle
             event_n += 1
+
+
 
 # print to check things
 # should be 937 252 particles
