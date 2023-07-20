@@ -17,8 +17,18 @@ def projectToPhi(imgName="particles_PbPb_50evt.hdf.npz"):#, etaMin = -0.8, etaMa
             sum += projection
         plt.plot(np.linspace(-np.pi, np.pi, 32), sum, label = "{}".format(j+k+1))
     plt.title("Pb$-$Pb $\\sqrt{s_{\\mathrm{NN}}}$ = 5.02 TeV")
-    plt.annotate('${T\\raisebox{-.5ex}{R}ENTo}+VISH(2+1)+UrQMD$',(0,10), xycoords='axes points')
+    # doesn't work -> 
+    #annotation = """${T\\raisebox{-.5ex}{R}ENTo}+VISH(2+1)+UrQMD$""" 
+    annotation = "$T_RENTo+VISH(2+1)+UrQMD$"
+    plt.annotate(annotation, (0,10), xycoords='axes points')
     plt.xlabel('$\\phi$')
     plt.ylabel('$dN_{ch}/d\\phi$')
     plt.legend(title = 'Event #')
-    plt.show()
+    #plt.show()
+    filename = "projection-evts-1-to-{}.png".format(k+1)
+    plt.savefig(filename)
+    plt.close()
+
+
+if __name__ == '__main__':
+	projectToPhi()
