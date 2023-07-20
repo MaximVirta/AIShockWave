@@ -34,7 +34,7 @@ def QVector(phis, n):
 def SingleEvtAvgTwoParticleCorr(Qns, Ms):
     return (np.abs(Qns)*np.abs(Qns) - Ms)#/(Ms*Ms-Ms)
 
-# TODO edit this to make the two other layers
+
 def make_image_sample(sample, energy=5.02):
     histoE, xedgesE, yedgesE = np.histogram2d(sample['eta'], sample['phi'], weights=np.log(energy)*np.ones(len(sample)), bins=(32,32), 
                                            range=[[-0.8,0.8],[-np.pi,np.pi]])
@@ -42,13 +42,13 @@ def make_image_sample(sample, energy=5.02):
                                            range=[[-0.8,0.8],[-np.pi,np.pi]])
     histopT, xedgespT, yedgespT = np.histogram2d(sample['eta'], sample['phi'], weights=sample['pT'], bins=(32,32), 
                                            range=[[-0.8,0.8],[-np.pi,np.pi]])
-    return np.array([np.array([histoE, histomT, histopT])])
+    # unweighted
+    histo, xedges, yedges = np.histogram2d(sample['eta'], sample['phi'], bins=(32,32), 
+                                           range=[[-0.8,0.8],[-np.pi,np.pi]])
+    return np.array([np.array([histoE, histomT, histopT, histo])])
 
 
 
-#print(sys.argv[2:]) # when running, give as arguments the files with data
-#TODO: give as first arg the beam energy, second arg bool of hdf or MC
-#for fn in sys.argv[1:]:
 def createImages(fn="particles_PbPb_50evt.hdf"):
 
     energy = 5.02 #sys.argv[1]
@@ -61,28 +61,16 @@ def createImages(fn="particles_PbPb_50evt.hdf"):
     skipped_v2s = np.array([])
     skipped_Ms = np.array([])
     skipped_images = np.array([])
-    sample_diffs = np.array([])
     image_diffs = np.array([])
-    sample_sizes = np.array([])
-    nch_inimage_check = 0
-    total_samples = 0
-    total_particles = 0
 
-    images = np.empty((0,3,32,32))
+    images = np.empty((0,4,32,32))
     with h5py.File(fn,"r") as f:
-        event_n = 1
 
-        ievt = 0
         for evt in f.values(): # loop over events in file
             Ms = np.array([]) # mulitplicities per event
             Q2s = np.array([]) # Q-vectors per event
             Q3s = np.array([])
             particles = np.sort(np.array(evt[:], dtype=parts_dtype), order=['sample','charge']) # list of particles in event
-            sample_start = 0
-            sample_n = particles[0]['sample']
-            current_particle = 0
-            n_particles = 0
-            ch_indices = np.array([])
             N_samples = 10 #particles.max(axis=1);
             for s in range(N_samples):
                 sample = []
@@ -111,17 +99,13 @@ def createImages(fn="particles_PbPb_50evt.hdf"):
             if sum(single_event_avgs_3) > 0: # only positive flow coefficients usable
                 v2s = np.append(v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights)*np.ones(N_samples)) # sample_n images per event
                 v3s = np.append(v3s, np.sqrt(sum(single_event_avgs_3)/sum_of_weights)*np.ones(N_samples))
-                Ms_event = np.append(Ms_event, np.sum(Ms)*np.ones(sample_n)) # charged particle multiplicity per event
+                Ms_event = np.append(Ms_event, np.sum(Ms)*np.ones(N_samples)) # charged particle multiplicity per event
             else:
-                skipped_images = np.append(skipped_images, images[-sample_n:])
+                skipped_images = np.append(skipped_images, images[-N_samples:])
                 images = images[:-N_samples] # throw away images of last event
                 skipped_v2s = np.append(skipped_v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights))
                 skipped_Ms = np.append(skipped_Ms, np.sum(Ms))
 
-            # print("finished event {}".format(event_n))
-            total_samples += sample_n
-            total_particles += current_particle
-            event_n += 1
     
     Ms_image = np.sum(images, axis=(1,2,3))  # array of multiplicities of each energy layer: images = [[histoE1, histomT1, histopT1], [histoE2, histomT2, histopT2], ...]
 
@@ -132,10 +116,6 @@ def createImages(fn="particles_PbPb_50evt.hdf"):
 if __name__ == '__main__':
     createImages()
     # print to check things
-    # should be 937 252 particles
-    # print('events', event_n-1)
-    # print('samples', total_samples)
-    # print('particles', total_particles)
 
     # print('total nch in images {nch} and skipped {skipped}'.format(nch = np.sum(Ms_event), skipped = np.sum(skipped_Ms)))
     # print('skipped {n} events with nch avg {avg}, v2s {v2s}'.format(n = len(skipped_v2s), avg = np.average(skipped_Ms), v2s = skipped_v2s))
@@ -145,10 +125,8 @@ if __name__ == '__main__':
 
     # print('image check = {}'.format(np.sum(np.abs(image_diffs))))
     # print('charged particles in image')
-    # TODO get the correct values for avg min max
     # print(images.shape)
     # print('avg {avg} min {min} max {max}'.format(avg=np.average(Ms_image),min=np.min(Ms_image), max=np.max(Ms_image)))
 
     # print(v2s.shape, v3s.shape, Ms_image.shape)
-    # TODO: group image with corresponding vn and multiplicity
  
