@@ -1,3 +1,10 @@
+# This script creates particle images and calculates v2 from hdf files using 2-particle correlations from Q vectors
+# Based on https://arxiv.org/pdf/1010.0233.pdf
+# Images are created for each sample
+# Flow coefficients for each event are calculated using all samples
+# For simplicity assume there is uniform acceptance in the detector
+# TODO: add comments to functions
+
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,13 +22,9 @@ parts_dtype = [
 	('eta', float)
 ]
 
-
-
-
 # skipped_images=np.array([])
 # skipped_v2s= np.array([])
 # skipped_Ms =np.array([])
-
 
 def QVector(phis, n):
     return sum(np.exp(n*1j*phis))
@@ -72,7 +75,7 @@ def calculate_vn_per_event( Ms,Q2s, Q3s,v2s,v3s, N_samples=10):
             single_event_avgs_3 = SingleEvtAvgTwoParticleCorr(Q3s, Ms)
            
             if sum(single_event_avgs_3) > 0: # only positive flow coefficients usable
-                v2s = np.append(v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights)*np.ones(N_samples)) # sample_n images per event
+                v2s = np.append(v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights)*np.ones(N_samples)) # N_samples images per event
                 v3s = np.append(v3s, np.sqrt(sum(single_event_avgs_3)/sum_of_weights)*np.ones(N_samples))
                # Ms_event = np.append(Ms_event, np.sum(Ms)*np.ones(N_samples)) # charged particle multiplicity per event
             else:
@@ -113,7 +116,7 @@ def  main():
     Ms_image=np.sum(images,axis=(1,2,3))
     # print(v2s.shape)
     # print(v3s.shape)
-    # print(Ms_image.shape) #should be 180
+    # print(Ms_image.shape) #should be 180 for particles_PbPb_50evt.hdf
 
     flowdata = np.stack((v2s, v3s, Ms_image), axis=-1)
     np.savez_compressed('{}.npz'.format(fn),images=images,flow_data = flowdata)
