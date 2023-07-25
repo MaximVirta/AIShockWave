@@ -132,7 +132,15 @@ def calculate_vn_per_event( Ms,Q2s, Q3s,v2s,v3s, N_samples=10):
                
             return [v2s,v3s, skipped]
 
-    
+
+def removeNans(flowdata):
+    """
+    removes rows with NaNs
+    args: array to remove from
+    returns: same array rows containing NaNs removed (if any)
+    """
+    return flowdata[:, ~np.isnan(flowdata).any(axis=0)]
+
 def  main():
 
    #define initial parameters
@@ -164,6 +172,8 @@ def  main():
     #create .npz files of images
     Ms_image=np.sum(images,axis=(1,2,3))
     flowdata = np.stack((v2s, v3s, Ms_image), axis=-1)
+    #TODO remove nans and images associated with them
+    #flowdata = removeNans(flowdata)
     np.savez_compressed('{}.npz'.format(fn),images=images,flow_data = flowdata)
 
  
