@@ -34,5 +34,4 @@ def plot_images(imgName="particles_PbPb_50evt.hdf.npz"):
     
 
 if __name__ == '__main__':
-    #plot_images()
-    projectToPhi()
+    plot_images()
