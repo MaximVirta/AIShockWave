@@ -23,7 +23,7 @@ parts_dtype = [
 ]
 
 def QVector(phis, n):
-    return sum(np.exp(n*1j*phis))
+    return np.sum(np.exp(n*1j*phis))
 # by eq (16)
 
 
@@ -123,7 +123,7 @@ def calculate_vn_per_event( Ms,Q2s, Q3s,v2s,v3s, N_samples=10):
             single_event_avgs_2 = SingleEvtAvgTwoParticleCorr(Q2s, Ms)
             single_event_avgs_3 = SingleEvtAvgTwoParticleCorr(Q3s, Ms)
            
-            if sum(single_event_avgs_3) > 0: # only positive flow coefficients usable
+            if sum(single_event_avgs_3) > 0 and sum(single_event_avgs_2) > 0: # only positive numbers for square root
                 v2s = np.append(v2s, np.sqrt(sum(single_event_avgs_2)/sum_of_weights)*np.ones(N_samples)) 
                 v3s = np.append(v3s, np.sqrt(sum(single_event_avgs_3)/sum_of_weights)*np.ones(N_samples))
                # Ms_event = np.append(Ms_event, np.sum(Ms)*np.ones(N_samples)) # charged particle multiplicity per event
@@ -132,14 +132,6 @@ def calculate_vn_per_event( Ms,Q2s, Q3s,v2s,v3s, N_samples=10):
                
             return [v2s,v3s, skipped]
 
-
-def removeNans(flowdata):
-    """
-    removes rows with NaNs
-    args: array to remove from
-    returns: same array rows containing NaNs removed (if any)
-    """
-    return flowdata[:, ~np.isnan(flowdata).any(axis=0)]
 
 def  main():
 
@@ -172,7 +164,7 @@ def  main():
     #create .npz files of images
     Ms_image=np.sum(images,axis=(1,2,3))
     flowdata = np.stack((v2s, v3s, Ms_image), axis=-1)
-    #TODO remove nans and images associated with them
+    #TODO if necessary remove nans and associated images by calling removeNans from removeNans.py 
     #flowdata = removeNans(flowdata)
     np.savez_compressed('{}.npz'.format(fn),images=images,flow_data = flowdata)
 
