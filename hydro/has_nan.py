@@ -24,7 +24,7 @@ def main():
         if has_nan(flowdata):
             howmanyNaNs += 1
         if(i%100 == 0):
-            sys.stdout.write("\r{0}".format((float(i)/n)*100))
+            sys.stdout.write("\r{0}".format((float(i)/n_files)*100))
             sys.stdout.flush()
     print('files containing NaNs: ', howmanyNaNs, ' /', n_files)
     
