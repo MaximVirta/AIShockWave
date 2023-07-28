@@ -55,7 +55,7 @@ def make_image_sample(sample, energy=5.02):
     return np.array([np.array([histoE, histomT, histopT, histo])])
 
 
-def samples_calculations(particles, N_samples, Q2s,Q3s, Ms, images):
+def samples_calculations(particles, N_samples, Q2s, Q3s, Ms, images):
     """
     Calculates and rrturns multiplicities, Q vectors of samples and makes images of samples for given event
     first, for a given event, selects appropriate particles by looping through all samples in it. Then, calculates multiplicity, Q vectors
@@ -99,7 +99,7 @@ def samples_calculations(particles, N_samples, Q2s,Q3s, Ms, images):
 
 
  
-def calculate_vn_per_event( Ms,Q2s, Q3s,v2s,v3s, N_samples=10):
+def calculate_vn_per_event(Ms, Q2s, Q3s, v2s, v3s, N_samples=10):
             """
             calculates and returns flow coefficients for given event
 
@@ -114,7 +114,7 @@ def calculate_vn_per_event( Ms,Q2s, Q3s,v2s,v3s, N_samples=10):
             returns:
             v2s(numpy array):elliptic flow coefficient of given event
             v3s(numpy array): triangular flow coefficient of given event
-            skipped(boolean):  T/F if event is suitable or not
+            skipped(boolean):  False by default, True if event has non-real flow coefficients
             
             """
             skipped = False 
@@ -154,9 +154,9 @@ def  main():
 
             particles = np.sort(np.array(evt[:], dtype=parts_dtype), order=['sample','charge'])#sort all particles tuples according to sample number for givent event
     
-            Ms, Q2s,  Q3s, images=samples_calculations(particles, N_samples,Q2s,Q3s, Ms,images)#calculate multiplicity of particles, Q vectors and make images of samples
+            Ms, Q2s, Q3s, images=samples_calculations(particles, N_samples, Q2s, Q3s, Ms,images)#calculate multiplicity of particles, Q vectors and make images of samples
 
-            v2s,v3s, skipped=calculate_vn_per_event(Ms,Q2s,Q3s,v2s,v3s) # use Ms and Q vectors to calculate elliptic and triangular flow coefficients for event
+            v2s, v3s, skipped=calculate_vn_per_event(Ms,Q2s,Q3s,v2s,v3s) # use Ms and Q vectors to calculate elliptic and triangular flow coefficients for event
       
             if skipped==True: #check if the event is suitable             
                 images = images[:-N_samples] # throw away images of last event
