@@ -17,9 +17,9 @@ def main():
     n_files = len(file_list)
     i = 0
     for filename in file_list:
-        if ~sys.path.isfile(filename): continue
-        i += 1
         filepath = os.path.join(directory, filename)
+        if ~sys.path.isfile(filepath): continue
+        i += 1
         compressed = np.load(filepath, allow_pickle=False)
         flowdata = compressed['flow_data']
         if has_nan(flowdata):
@@ -31,3 +31,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
