@@ -11,12 +11,13 @@ def has_nan(array):
 
 
 def main():
-    directory = '/scratch/project_2003154/MachineLearning/FirstImages5TeV/test_set'
+    directory = '/scratch/project_2003154/MachineLearning/FirstImages5TeV/test_set/'
     howmanyNaNs = 0
     file_list = os.listdir(directory)
     n_files = len(file_list)
     i = 0
     for filename in file_list:
+        if ~sys.path.isfile(filename): continue
         i += 1
         filepath = os.path.join(directory, filename)
         compressed = np.load(filepath, allow_pickle=False)
@@ -27,6 +28,6 @@ def main():
             sys.stdout.write("\r{0}".format((float(i)/n_files)*100))
             sys.stdout.flush()
     print('files containing NaNs: ', howmanyNaNs, ' /', n_files)
-    
+
 if __name__ == '__main__':
     main()
