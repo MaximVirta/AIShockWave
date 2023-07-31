@@ -57,7 +57,7 @@ def make_image_sample(sample, energy=5.02):
 
 def samples_calculations(particles, N_samples, Q2s, Q3s, Ms, images):
     """
-    Calculates and rrturns multiplicities, Q vectors of samples and makes images of samples for given event
+    Calculates and returns multiplicities, Q vectors of samples and makes images of samples for given event
     first, for a given event, selects appropriate particles by looping through all samples in it. Then, calculates multiplicity, Q vectors
     and makes image for that sample, and adds those values to corresponding arrays
 

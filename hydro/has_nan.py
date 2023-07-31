@@ -1,3 +1,8 @@
+import numpy as np
+import os
+import sys
+import time
+
 def has_nan(array):
     '''
     checks if given array has a NaN inside

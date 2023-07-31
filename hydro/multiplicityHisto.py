@@ -6,18 +6,29 @@ import sys
 
 def getMultiplicities(directory):
     multiplicities = []
-    for i in range(100):
-        file_list = os.listdir(directory + str(i)+'/')
+    for i in range(2):
+        file_list = os.listdir(directory+str(i)+'/')
+        sys.stdout.write(str(i))
+        sys.stdout.flush()
         for filename in file_list:
-            filepath = os.path.join(directory, filename)
-            if not os.path.isfile(filepath): continue
+            filepath = os.path.join(directory+str(i)+'/', filename)
+           # print('marco')
+           # if not os.path.isfile(filepath): continue
+           # print('polo')
             compressed = np.load(filepath, allow_pickle=False)
-            M = compressed['flow_data'][2]
+            flowdata = compressed['flow_data']
+            #print(flowdata.shape)
+            #print(len(flowdata))
+            if len(flowdata) == 0:
+                print(compressed['images'].shape)
+                continue
+            M = compressed['flow_data'][:][2][2]/np.log(5.02) # all rows from flowdata, only Ms column and energy weighted histos, dividing out the weighting by energy
+            #print(M)
             multiplicities.append(M)
     return np.array(multiplicities)
 
     np.append(multiplicities, M)
-    return multiplicities 
+    return multiplicities
 
 def plotHisto(values):#, etaMin = -0.8, etaMax = 0.8):
     plt.hist(values, bins=100)
@@ -30,13 +41,16 @@ def plotHisto(values):#, etaMin = -0.8, etaMax = 0.8):
     plt.ylabel('N of events')
     #plt.legend(title = 'Event #')
     #plt.show()
-    filename = "multiplictyHistogram.png"
+    filename = "histo-multis.png"
     plt.savefig(filename)
     #plt.close()
 
 def main():
     directory = '/scratch/project_2003154/MachineLearning/FirstImages5TeV/'
     multiplicities = getMultiplicities(directory)
+    #print(multiplicities)
+    #print(multiplicities.shape)
+    np.save(array-multiplicities, multiplicities)
     plotHisto(multiplicities)
 
 if __name__ == '__main__':
