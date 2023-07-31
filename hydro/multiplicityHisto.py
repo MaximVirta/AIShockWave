@@ -20,7 +20,7 @@ def getMultiplicities(directory):
     return multiplicities 
 
 def plotHisto(values):#, etaMin = -0.8, etaMax = 0.8):
-    plt.plot(np.histogram(values, bins=1000))
+    plt.hist(values, bins=100)
     plt.title("Pb$-$Pb $\\sqrt{s_{\\mathrm{NN}}}$ = 5.02 TeV")
     # doesn't work -> 
     #annotation = """${T\\raisebox{-.5ex}{R}ENTo}+VISH(2+1)+UrQMD$""" 
