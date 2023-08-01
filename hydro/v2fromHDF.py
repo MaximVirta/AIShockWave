@@ -162,7 +162,9 @@ def  main():
                 images = images[:-N_samples] # throw away images of last event
 
     #create .npz files of images
-    Ms_image=np.sum(images,axis=(1,2,3))
+    Ms_image=np.sum(images,axis=(2,3))
+    print(Ms_image.shape)
+    print(Ms_image)
     flowdata = np.stack((v2s, v3s, Ms_image), axis=-1)
     #TODO if necessary remove nans and associated images by calling removeNans from removeNans.py 
     #flowdata = removeNans(flowdata)
