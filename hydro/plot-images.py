@@ -34,4 +34,6 @@ def plot_images(imgName="particles_PbPb_50evt.hdf.npz"):
     
 
 if __name__ == '__main__':
-    plot_images()
+    if len(sys.argv) > 1:
+        image_path=sys.argv[1]
+    plot_images(image_path)
