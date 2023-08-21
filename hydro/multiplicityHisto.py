@@ -12,9 +12,7 @@ def getMultiplicities(directory):
         sys.stdout.flush()
         for filename in file_list:
             filepath = os.path.join(directory+str(i)+'/', filename)
-           # print('marco')
            # if not os.path.isfile(filepath): continue
-           # print('polo')
             compressed = np.load(filepath, allow_pickle=False)
             flowdata = compressed['flow_data']
             #print(flowdata.shape)
