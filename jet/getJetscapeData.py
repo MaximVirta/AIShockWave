@@ -76,6 +76,7 @@ def makeImage(particles):
     N_events = int(particles[-1,0]) #event number of last particle
     # to make numpy concatenate work, create the first event seperately
     sample = particles[np.nonzero(particles[:,0] == 1)[0]]
+    print(len(sample[np.nonzero(np.abs(sample[:,2]) <= 0.8)]))
     eta = sample[:,2]
     phi = sample[:,3]
     histoE, xedges, yedges = np.histogram2d(eta, phi, bins=(32,32), range=[[-0.8,0.8],[0,2*np.pi]], weights=np.log(5.02)*np.ones(sample.shape[0]))
@@ -83,13 +84,16 @@ def makeImage(particles):
     histos = np.array([[histoE, histoPt]])
     for i in range(2, N_events+1):
         sample = particles[np.nonzero(particles[:,0] == i)[0]]
+        print(len(sample[np.nonzero(np.abs(sample[:,2]) <= 0.8)]))
+        if i > 10:
+            sys.exit()
         eta = sample[:,2]
         phi = sample[:,3]
         histoE, xedges, yedges = np.histogram2d(eta, phi, bins=(32,32), range=[[-0.8,0.8],[0,2*np.pi]], weights=np.log(5.02)*np.ones(sample.shape[0]))
         histoPt, xedges, yedges = np.histogram2d(eta, phi, bins=(32,32), range=[[-0.8,0.8],[0,2*np.pi]], weights=sample[:,1])
         temp_histos = np.array([[histoE, histoPt]])
         histos = np.concatenate((histos, temp_histos), axis = 0)
-        #np.save('jetscape_images', histos)
+    np.save('jetscape_images2', histos)
 
 
 if __name__=='__main__':
