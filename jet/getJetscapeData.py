@@ -4,8 +4,9 @@ import sys
 
 
 def getJetscapeData(jetscape_hadrons):
-
+    print('loading hadron list')
     hadrons_in = np.loadtxt(jetscape_hadrons)
+    print('loading complete')
     # output as a numpy array first dimension has events, second dimension particles, third dimension coordinates (pT,mass,eta,phi)
     hadrons_out = np.empty((0,9,4))
 
@@ -29,7 +30,7 @@ def getJetscapeData(jetscape_hadrons):
     # couldn't get mass
     hadrons_out = np.array([np.column_stack((eventNum, pT, eta, phi))])[0]
     print('hadrons shape {}'.format(hadrons_out.shape))
-    np.save('jetscape_particles', hadrons_out)
+    #np.savez_compressed('jetscape_particles_3big', hadrons_out)
     makeImage(hadrons_out)
 
 
@@ -70,31 +71,33 @@ def getMass(E, px, py, pz, hadrons_in):
         return np.sqrt(mass2)
 
 def makeImage(particles):
+    print('starting image creation')
     # particles is an array of shape (N_particles, 4), second axis contains n_event, pT, eta, phi
-    print(particles)
-    print(particles[-1,0])
     N_events = int(particles[-1,0]) #event number of last particle
-    # to make numpy concatenate work, create the first event seperately
-    sample = particles[np.nonzero(particles[:,0] == 1)[0]]
-    print(len(sample[np.nonzero(np.abs(sample[:,2]) <= 0.8)]))
-    eta = sample[:,2]
-    phi = sample[:,3]
-    histoE, xedges, yedges = np.histogram2d(eta, phi, bins=(32,32), range=[[-0.8,0.8],[0,2*np.pi]], weights=np.log(5.02)*np.ones(sample.shape[0]))
-    histoPt, xedges, yedges = np.histogram2d(eta, phi, bins=(32,32), range=[[-0.8,0.8],[0,2*np.pi]], weights=sample[:,1])
-    histos = np.array([[histoE, histoPt]])
-    for i in range(2, N_events+1):
+
+    for i in range(1, N_events+1):
         sample = particles[np.nonzero(particles[:,0] == i)[0]]
-        print(len(sample[np.nonzero(np.abs(sample[:,2]) <= 0.8)]))
-        if i > 10:
-            sys.exit()
+    
+        if len(sample[np.nonzero(np.abs(sample[:,2]) <= 0.8)]) < 10: # skip if there are less than 10 particles within the image range (eta € [-0.8,0.8])
+            continue
+    
         eta = sample[:,2]
         phi = sample[:,3]
         histoE, xedges, yedges = np.histogram2d(eta, phi, bins=(32,32), range=[[-0.8,0.8],[0,2*np.pi]], weights=np.log(5.02)*np.ones(sample.shape[0]))
         histoPt, xedges, yedges = np.histogram2d(eta, phi, bins=(32,32), range=[[-0.8,0.8],[0,2*np.pi]], weights=sample[:,1])
-        temp_histos = np.array([[histoE, histoPt]])
-        histos = np.concatenate((histos, temp_histos), axis = 0)
-    np.save('jetscape_images2', histos)
-
+    
+        if i%1000 == 1: # to make np.concatenate work, create the first event of batch seperately, and overwrite histos already saved
+            histos = np.array([[histoE, histoPt]])
+            print('cleared images already on disk')
+    
+        else: # add to current the image list
+            temp_histos = np.array([[histoE, histoPt]])
+            histos = np.concatenate((histos, temp_histos), axis = 0)
+    
+        if i%1000 == 0: # save batch of 1000 images
+            np.save('/projappl/project_2003154/MachineLearning/AIShockWave/jet/100kJetscapeImages/JetscapeImages3-{}'.format(i/1000), histos)
+            print('saved image batch number {}'.format(i/1000))
 
 if __name__=='__main__':
-    getJetscapeData('hadron_list_1.dat')
+    hadronfile = sys.argv[1]
+    getJetscapeData(hadronfile)
